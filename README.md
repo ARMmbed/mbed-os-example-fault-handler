@@ -51,7 +51,7 @@ Image: .\.build\K64F\ARM\mbed-os-example-fault-handler.bin
 An exception will be triggered and you will see following crash information in STDOUT.
 The crash information contains register context at the time exception and current threads in the system.
 The information printed out to STDOUT will be similar to below. Registers captured depends on specific
-Cortex-M core you are using. For example, if your target is using Cortex-M0, some registers like 
+Cortex-M core you are using. For example, if your target is using Cortex-M0, some registers like
 MMFSR, BFSR, UFSR may not be available and will not appear in the crash log.
 ```
 Mbed-OS exception handler test
@@ -127,6 +127,64 @@ Parsed Crash Info:
                 Processor Variant: C24
                 Forced exception, a fault with configurable priority has been escalated to HardFault
                 Divide by zero error has occurred
-                
+
 Done parsing...
 ```
+
+## Finding the exact instruction where the application crashed
+
+You can find the exact instruction that crashed the board by looking at the debug symbols in the `elf` file. For example, here is an error that was thrown after an unaligned read (`generate_bus_fault_unaligned_access()` function in `main.cpp`):
+
+```
+Crash Info:
+        Crash location = generate_bus_fault_unaligned_access() [0x000017E8] (based on PC value)
+        Caller location = exception_generator(_ExceptType) [0x000018A9] (based on LR value)
+        Stack Pointer at the time of crash = [20002E88]
+        Target and Fault Info:
+                Processor Arch: ARM-V7M or above
+                Processor Variant: C24
+                Forced exception, a fault with configurable priority has been escalated to HardFault
+                Unaligned access error has occurred
+```
+
+To see the location, extract the symbols from the `elf` file:
+
+```
+$ arm-none-eabi-objdump -S BUILD/K64F/GCC_ARM/mbed-os-example-fault-handler.elf > symbols.txt
+```
+
+This gives a human-readable text file. Load symbols.txt in a text editor, and look for the last four digits of the crash location in lower case, with a `:` at the end.
+
+```
+000017d8 <_Z35generate_bus_fault_unaligned_accessv>:
+    SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
+    17d8:	4a05      	ldr	r2, [pc, #20]	; (17f0 <_Z35generate_bus_fault_unaligned_accessv+0x18>)
+    printf("\nval= %X", val);
+    17da:	4806      	ldr	r0, [pc, #24]	; (17f4 <_Z35generate_bus_fault_unaligned_accessv+0x1c>)
+    SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk;
+    17dc:	6953      	ldr	r3, [r2, #20]
+    17de:	f043 0308 	orr.w	r3, r3, #8
+    17e2:	6153      	str	r3, [r2, #20]
+    printf("\nval= %X", val);
+    17e4:	f64a 23a3 	movw	r3, #43683	; 0xaaa3
+    17e8:	6819      	ldr	r1, [r3, #0]                            <---- FAULT LOCATION
+    17ea:	f005 bb11 	b.w	6e10 <printf>
+    17ee:	bf00      	nop
+    17f0:	e000ed00 	.word	0xe000ed00
+```
+
+As you can see the error happened when the load register (`ldr`) call was made with the value of register 3 (`r3`). As you also have access to the register values in the initial crash report (on the board) we can also see exactly which address we were trying to read from:
+
+```
+FaultType: HardFault
+
+Context:
+R0   : 0000C772
+R1   : 00000000
+R2   : E000ED00
+R3   : 0000AAA3                 <----- This address
+R4   : 00000003
+R5   : 00000000
+```
+
+Which matches with the address we're trying to read in `generate_bus_fault_unaligned_access`.
