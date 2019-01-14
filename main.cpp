@@ -63,6 +63,7 @@ MBED_NOINLINE void exception_generator(ExceptType except_type)
         default:
             printf("\nInvalid exception generator\n");
     }
+    printf("\nexception generator failed\n");
 }
 
 MBED_NOINLINE void generate_bus_fault_unaligned_access()
