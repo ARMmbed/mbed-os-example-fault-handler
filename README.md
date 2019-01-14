@@ -53,7 +53,7 @@ The crash information contains register context at the time exception and curren
 The information printed out to STDOUT will be similar to below. Registers captured depends on specific
 Cortex-M core you are using. For example, if your target is using Cortex-M0, some registers like 
 MMFSR, BFSR, UFSR may not be available and will not appear in the crash log.
-
+```
 Mbed-OS exception handler test
 
 Forcing exception: 3
@@ -96,7 +96,6 @@ Stack: PSP
 -- MbedOS Fault Handler --
 
 
-
 ++ MbedOS Error Info ++
 Error Status: 0x80FF013D Code: 317 Module: 255
 Error Message: Fault exception
@@ -108,9 +107,8 @@ For more info, visit: https://armmbed.github.io/mbedos-error/?error=0x80FF013D
 == The system has been rebooted due to a fatal error. ==
 
 Rebooted and Halted...test completed
-
+```
 To investigate more on this hardfault copy and save this crash information to a text file and run the crash_log_parser.py tool as below.
-NOTE: Make sure you copy the section with text "MbedOS Fault Handler" as the this tool looks for that header.
 
 ## Running the Crash Log Parser
 crash_log_parser.py <Path to Crash log> <Path to Elf/Axf file of the build> <Path to Map file of the build>
@@ -119,6 +117,7 @@ crashlogparser.py crash.log C:\MyProject\BUILD\k64f\arm\mbed-os-hf-handler.elf C
 
 An example output from running crash_log_parser is shown below.
 
+```
 Parsed Crash Info:
         Crash location = zero_div_test() [0000693E]
         Caller location = $Super$$main [00009E99]
@@ -128,5 +127,6 @@ Parsed Crash Info:
                 Processor Variant: C24
                 Forced exception, a fault with configurable priority has been escalated to HardFault
                 Divide by zero error has occurred
-
+                
 Done parsing...
+```
