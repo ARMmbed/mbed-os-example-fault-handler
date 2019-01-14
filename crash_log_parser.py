@@ -44,6 +44,10 @@ class ElfHelper(object):
     def function_name_for_addr(self, addr):
         i = bisect.bisect_right(self.addrs, addr)
         funcname = self.matches[i-1][2]
+        #kludge for processing ARMC generated elf/map files
+        if(funcname.startswith("__tagsym")):
+            funcname = self.matches[i-2][2]
+                
         return funcname
 
 def print_HFSR_info(hfsr):
